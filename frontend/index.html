@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EvalPilot Dashboard</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+    header {
+      padding: 28px 40px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      background: linear-gradient(135deg, #111827, #1e293b);
+    }
+    header h1 { margin: 0 0 8px; font-size: 30px; }
+    header p { margin: 0; color: #94a3b8; }
+    main { padding: 28px 40px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: rgba(15, 23, 42, .96);
+      border: 1px solid rgba(148, 163, 184, .22);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,.25);
+    }
+    .metric { font-size: 34px; font-weight: 800; margin-top: 10px; }
+    .label { color: #94a3b8; font-size: 14px; }
+    .layout {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 18px;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td {
+      text-align: left;
+      border-bottom: 1px solid rgba(148, 163, 184, .15);
+      padding: 12px 8px;
+      font-size: 14px;
+    }
+    th { color: #94a3b8; font-weight: 600; }
+    .tag {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: rgba(59,130,246,.15);
+      border: 1px solid rgba(59,130,246,.35);
+      font-size: 12px;
+      color: #bfdbfe;
+    }
+    .danger { background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.35); color: #fecaca; }
+    .warn { background: rgba(245,158,11,.14); border-color: rgba(245,158,11,.35); color: #fde68a; }
+    .bar { height: 12px; border-radius: 999px; background: #1e293b; overflow: hidden; margin: 12px 0 18px; }
+    .bar span { display: block; height: 100%; background: linear-gradient(90deg, #60a5fa, #22c55e); }
+    .code {
+      background: #020617;
+      border-radius: 14px;
+      padding: 14px;
+      overflow: auto;
+      color: #cbd5e1;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>EvalPilot｜LLM Evaluation Dashboard</h1>
+    <p>Rubric 评分、Gold Answer 覆盖率、错误类型归因与人工复核数据看板</p>
+  </header>
+  <main>
+    <section class="grid">
+      <div class="card"><div class="label">Total Cases</div><div class="metric">128</div></div>
+      <div class="card"><div class="label">Average Score</div><div class="metric">8.3</div></div>
+      <div class="card"><div class="label">Pass Rate</div><div class="metric">76%</div></div>
+      <div class="card"><div class="label">Review Queue</div><div class="metric">17</div></div>
+    </section>
+
+    <section class="layout">
+      <div class="card">
+        <h2>Recent Evaluation Cases</h2>
+        <table>
+          <thead>
+            <tr><th>Case</th><th>Score</th><th>Level</th><th>Error Type</th><th>Action</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>prime_001</td><td>10</td><td><span class="tag">pass</span></td><td>-</td><td>抽检通过</td></tr>
+            <tr><td>prime_002</td><td>3</td><td><span class="tag danger">fail</span></td><td>logic_error</td><td>人工复核</td></tr>
+            <tr><td>array_014</td><td>6</td><td><span class="tag warn">partial</span></td><td>missing_edge_case</td><td>补充边界</td></tr>
+            <tr><td>sql_021</td><td>7</td><td><span class="tag warn">partial</span></td><td>format_error</td><td>检查输出</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Error Distribution</h2>
+        <div class="label">logic_error</div><div class="bar"><span style="width: 42%"></span></div>
+        <div class="label">missing_edge_case</div><div class="bar"><span style="width: 31%"></span></div>
+        <div class="label">format_error</div><div class="bar"><span style="width: 18%"></span></div>
+        <div class="label">incomplete_answer</div><div class="bar"><span style="width: 25%"></span></div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top: 18px;">
+      <h2>Structured Evaluation Output</h2>
+      <pre class="code">{
+  "case_id": "prime_002",
+  "score": 3,
+  "level": "fail",
+  "error_types": ["logic_error", "incomplete_answer"],
+  "evidence": [
+    "命中错误模式：1 是质数、奇数就是质数",
+    "缺失关键点：sqrt、false、true"
+  ],
+  "suggestion": "优先修正核心逻辑错误，再补充边界条件和输出格式。"
+}</pre>
+    </section>
+  </main>
+</body>
+</html>
