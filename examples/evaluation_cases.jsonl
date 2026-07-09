@@ -1,0 +1,3 @@
+{"case_id":"prime_001","task":"判断整数是否为质数","model_output":"质数是大于 1 且只能被 1 和自身整除的整数。n <= 1 返回 false，n == 2 返回 true，偶数返回 false，然后从 3 开始只检查到 sqrt(n)。如果没有因子则返回 true。时间复杂度 O(sqrt(n))。","required_keywords":["大于 1","sqrt","false","true"],"fail_patterns":["1 是质数","只判断奇偶"],"expected_level":"pass"}
+{"case_id":"prime_002","task":"判断整数是否为质数","model_output":"如果 n 是奇数就是质数，偶数就不是质数。1 也是质数。","required_keywords":["大于 1","sqrt","false","true"],"fail_patterns":["1 也是质数","奇数就是质数"],"expected_level":"fail"}
+{"case_id":"prime_003","task":"判断整数是否为质数","model_output":"可以从 2 遍历到 n-1，如果都不能整除就是质数。n 小于 2 时不是质数。","required_keywords":["小于 2","质数"],"fail_patterns":[],"expected_level":"partial"}
