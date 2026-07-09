@@ -1,0 +1,40 @@
+{
+  "task_type": "coding_evaluation",
+  "total_score": 10,
+  "dimensions": [
+    {
+      "name": "correctness",
+      "weight": 5,
+      "description": "核心逻辑是否正确，是否解决题目要求"
+    },
+    {
+      "name": "completeness",
+      "weight": 2,
+      "description": "是否覆盖输入输出、约束条件和关键边界"
+    },
+    {
+      "name": "explainability",
+      "weight": 2,
+      "description": "是否解释关键步骤、复杂度和判断依据"
+    },
+    {
+      "name": "format",
+      "weight": 1,
+      "description": "输出格式是否符合要求，是否便于人工复核"
+    }
+  ],
+  "error_taxonomy": [
+    "logic_error",
+    "missing_edge_case",
+    "format_error",
+    "incomplete_answer",
+    "unsupported_claim",
+    "contradiction",
+    "empty_answer"
+  ],
+  "human_review_policy": {
+    "auto_pass_threshold": 8,
+    "manual_review_threshold": 6,
+    "must_review_error_types": ["logic_error", "contradiction"]
+  }
+}
