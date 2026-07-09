@@ -26,7 +26,7 @@ def init_profile(args: argparse.Namespace) -> None:
                 "role": "Prompt / Rubric Evaluation Specialist",
                 "description": "Built and reviewed coding tasks, designed scoring rubrics, checked model outputs and improved evaluation consistency.",
                 "start_year": 2025,
-                "end_year": null
+                "end_year": None
             }
         ],
         "education": [
