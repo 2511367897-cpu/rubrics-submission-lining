@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 import json
-import subprocess
-import sys
 from pathlib import Path
-from typing import List
+
+from ai_job_assistant.evaluator import evaluate_fit
+from ai_job_assistant.generator import render_cover_letter, render_cv
+from ai_job_assistant.job import parse_job_description
+from ai_job_assistant.profile import Profile
+from cli import default_profile_data
 
 BASE_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = BASE_DIR / "output"
@@ -16,32 +19,28 @@ LETTER_PATH = OUTPUT_DIR / "letter.md"
 JOB_PATH = BASE_DIR / "sample_data" / "sample_job.md"
 
 
-def run(command: List[str]) -> None:
-    print("\n$ " + " ".join(command), flush=True)
-    subprocess.run(command, cwd=str(BASE_DIR), check=True)
-
-
-def main() -> None:
+def main() -> int:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
-    run([sys.executable, "cli.py", "init-profile", "--output", str(PROFILE_PATH)])
-    run([sys.executable, "cli.py", "evaluate-job", "--profile", str(PROFILE_PATH), "--job", str(JOB_PATH), "--output", str(REPORT_PATH)])
-    run([sys.executable, "cli.py", "generate-cv", "--profile", str(PROFILE_PATH), "--job", str(JOB_PATH), "--cv-template", "templates/cv_template.md", "--output", str(CV_PATH)])
-    run([sys.executable, "cli.py", "generate-cover-letter", "--profile", str(PROFILE_PATH), "--job", str(JOB_PATH), "--letter-template", "templates/cover_letter_template.md", "--output", str(LETTER_PATH)])
+    profile_data = default_profile_data()
+    PROFILE_PATH.write_text(json.dumps(profile_data, indent=2, ensure_ascii=False), encoding="utf-8")
+    profile = Profile.from_dict(profile_data)
+    job = parse_job_description(JOB_PATH.read_text(encoding="utf-8"))
+    report = evaluate_fit(profile, job)
+    REPORT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    render_cv(profile, job, BASE_DIR / "templates" / "cv_template.md", CV_PATH)
+    render_cover_letter(profile, job, BASE_DIR / "templates" / "cover_letter_template.md", LETTER_PATH)
 
     required_files = [PROFILE_PATH, REPORT_PATH, CV_PATH, LETTER_PATH]
-    missing = [str(path) for path in required_files if not path.exists()]
+    missing = [str(path) for path in required_files if not path.exists() or path.stat().st_size == 0]
     if missing:
-        raise RuntimeError("Quickstart did not create expected files: " + ", ".join(missing))
+        raise RuntimeError("Quickstart did not create valid files: " + ", ".join(missing))
 
-    report = json.loads(REPORT_PATH.read_text(encoding="utf-8"))
-    print("\nSUCCESS: JobPilot completed without errors.")
-    print("Generated files:")
+    print("SUCCESS: JobPilot completed without errors.")
     for path in required_files:
         print("- " + str(path.relative_to(BASE_DIR)))
-    print("\nFit report preview:")
     print(json.dumps(report, indent=2, ensure_ascii=False))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
