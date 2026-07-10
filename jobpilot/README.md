@@ -8,6 +8,12 @@ JobPilot 是一个参考高星 AI 求职项目思路实现的轻量级 Python �
 
 它适合用于展示 **AI 应用开发、Prompt 工程、岗位文本分析、结构化数据处理、文档生成和命令行工具开发** 能力。
 
+## 环境要求
+
+- Python 3.8 或以上。
+- Windows、macOS、Linux 都可以运行。
+- 只依赖 Jinja2，`quickstart.py` 会在缺少依赖时自动安装。
+
 ## 最简单用法：一条命令跑通
 
 进入 `jobpilot` 目录后，直接运行：
@@ -87,21 +93,8 @@ python cli.py init-profile --output my_profile.json
 
 ### 3. 评估岗位匹配度
 
-一行版，Windows / macOS / Linux 都可以直接复制：
-
 ```bash
 python cli.py evaluate-job --profile my_profile.json --job sample_data/sample_job.md --output report.json
-```
-
-输出示例：
-
-```json
-{
-  "score": 70.0,
-  "matched_skills": ["json", "llm", "llm evaluation", "prompt engineering", "python", "rubric"],
-  "missing_skills": ["markdown"],
-  "recommendations": ["补充或强化 markdown，可以进一步提高该岗位匹配度。"]
-}
 ```
 
 ### 4. 生成定制简历
@@ -116,29 +109,33 @@ python cli.py generate-cv --profile my_profile.json --job sample_data/sample_job
 python cli.py generate-cover-letter --profile my_profile.json --job sample_data/sample_job.md --letter-template templates/cover_letter_template.md --output output/letter.md
 ```
 
-## 常见错误
+## 常见报错处理
 
-### 1. `ModuleNotFoundError: No module named 'jinja2'`
+### 1. 提示 `python: command not found`
 
-说明没有安装依赖，运行：
+换成下面任意一个：
+
+```bash
+python3 quickstart.py
+py quickstart.py
+```
+
+### 2. 提示 `ModuleNotFoundError: No module named 'jinja2'`
+
+手动安装依赖：
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. `File not found: sample_data/sample_job.md`
+### 3. 提示找不到文件
 
-说明你当前目录不对。请先进入项目目录：
+确认你已经进入 `jobpilot` 目录：
 
 ```bash
 cd jobpilot
+python quickstart.py
 ```
-
-然后再运行命令。
-
-### 3. Windows 复制多行命令出错
-
-不要复制带 `\` 的多行命令，直接用 README 里的“一行版”命令。
 
 ## 简历写法
 
