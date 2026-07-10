@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Dict, List, Tuple
 
 from .job import Job
 from .profile import Profile
@@ -10,7 +10,7 @@ def _normalise_skill(skill: str) -> str:
     return skill.strip().lower().replace("_", "-")
 
 
-def compute_skill_overlap(profile: Profile, job: Job) -> tuple[float, list[str], list[str]]:
+def compute_skill_overlap(profile: Profile, job: Job) -> Tuple[float, List[str], List[str]]:
     """Return overlap ratio, matched skills and missing skills.
 
     The job parser already extracts a curated skill list, so this evaluator only
@@ -26,7 +26,7 @@ def compute_skill_overlap(profile: Profile, job: Job) -> tuple[float, list[str],
     return len(matched) / denominator, matched, missing
 
 
-def evaluate_fit(profile: Profile, job: Job) -> dict[str, Any]:
+def evaluate_fit(profile: Profile, job: Job) -> Dict[str, Any]:
     ratio, matched, missing = compute_skill_overlap(profile, job)
     score = round(ratio * 100, 2)
     recommendations = [
