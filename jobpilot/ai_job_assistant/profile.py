@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List, Optional, Union
+
+PathLike = Union[str, Path]
 
 
 @dataclass
@@ -11,8 +13,8 @@ class Experience:
     company: str
     role: str
     description: str
-    start_year: int | None = None
-    end_year: int | None = None
+    start_year: Optional[int] = None
+    end_year: Optional[int] = None
 
 
 @dataclass
@@ -20,8 +22,8 @@ class Education:
     institution: str
     degree: str
     field: str
-    start_year: int | None = None
-    end_year: int | None = None
+    start_year: Optional[int] = None
+    end_year: Optional[int] = None
 
 
 @dataclass
@@ -30,12 +32,12 @@ class Profile:
     email: str
     phone: str
     summary: str
-    skills: list[str] = field(default_factory=list)
-    experience: list[Experience] = field(default_factory=list)
-    education: list[Education] = field(default_factory=list)
+    skills: List[str] = field(default_factory=list)
+    experience: List[Experience] = field(default_factory=list)
+    education: List[Education] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Profile":
+    def from_dict(cls, data: Dict[str, Any]) -> "Profile":
         experience = [Experience(**item) for item in data.get("experience", [])]
         education = [Education(**item) for item in data.get("education", [])]
         return cls(
@@ -48,11 +50,11 @@ class Profile:
             education=education,
         )
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
 
-def load_profile(path: str | Path) -> Profile:
+def load_profile(path: PathLike) -> Profile:
     profile_path = Path(path)
     if not profile_path.exists():
         raise FileNotFoundError(f"Profile not found: {profile_path}")
@@ -61,7 +63,7 @@ def load_profile(path: str | Path) -> Profile:
     return Profile.from_dict(data)
 
 
-def save_profile(profile: Profile, path: str | Path) -> None:
+def save_profile(profile: Profile, path: PathLike) -> None:
     profile_path = Path(path)
     profile_path.parent.mkdir(parents=True, exist_ok=True)
     with profile_path.open("w", encoding="utf-8") as file:
