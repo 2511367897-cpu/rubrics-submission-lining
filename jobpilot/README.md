@@ -8,6 +8,35 @@ JobPilot 是一个参考高星 AI 求职项目思路实现的轻量级 Python �
 
 它适合用于展示 **AI 应用开发、Prompt 工程、岗位文本分析、结构化数据处理、文档生成和命令行工具开发** 能力。
 
+## 最简单用法：一条命令跑通
+
+进入 `jobpilot` 目录后，直接运行：
+
+```bash
+python quickstart.py
+```
+
+如果你的电脑上 `python` 不可用，可以试：
+
+```bash
+python3 quickstart.py
+```
+
+Windows 也可以试：
+
+```bat
+py quickstart.py
+```
+
+运行成功后会自动生成：
+
+```text
+output/demo_profile.json
+output/report.json
+output/cv.md
+output/letter.md
+```
+
 ## 功能特点
 
 - **Profile 管理**：用 JSON 保存候选人的姓名、联系方式、技能、经历和教育背景。
@@ -23,6 +52,7 @@ JobPilot 是一个参考高星 AI 求职项目思路实现的轻量级 Python �
 jobpilot/
 ├── README.md
 ├── cli.py
+├── quickstart.py
 ├── requirements.txt
 ├── ai_job_assistant/
 │   ├── __init__.py
@@ -39,15 +69,15 @@ jobpilot/
     └── interview_pitch.md
 ```
 
-## 安装
+## 手动运行
+
+### 1. 安装依赖
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## 使用方法
-
-### 1. 初始化个人档案
+### 2. 初始化个人档案
 
 ```bash
 python cli.py init-profile --output my_profile.json
@@ -55,47 +85,60 @@ python cli.py init-profile --output my_profile.json
 
 然后打开 `my_profile.json`，把里面的姓名、技能、经历改成你的真实内容。
 
-### 2. 评估岗位匹配度
+### 3. 评估岗位匹配度
+
+一行版，Windows / macOS / Linux 都可以直接复制：
 
 ```bash
-python cli.py evaluate-job \
-  --profile my_profile.json \
-  --job sample_data/sample_job.md \
-  --output report.json
+python cli.py evaluate-job --profile my_profile.json --job sample_data/sample_job.md --output report.json
 ```
 
 输出示例：
 
 ```json
 {
-  "score": 62.5,
-  "matched_skills": ["python", "javascript", "prompt"],
-  "missing_skills": ["fastapi", "rest", "html"],
-  "recommendations": [
-    "Consider learning or improving your 'fastapi' skills to better match this job."
-  ]
+  "score": 70.0,
+  "matched_skills": ["json", "llm", "llm evaluation", "prompt engineering", "python", "rubric"],
+  "missing_skills": ["markdown"],
+  "recommendations": ["补充或强化 markdown，可以进一步提高该岗位匹配度。"]
 }
 ```
 
-### 3. 生成定制简历
+### 4. 生成定制简历
 
 ```bash
-python cli.py generate-cv \
-  --profile my_profile.json \
-  --job sample_data/sample_job.md \
-  --cv-template templates/cv_template.md \
-  --output output/cv.md
+python cli.py generate-cv --profile my_profile.json --job sample_data/sample_job.md --cv-template templates/cv_template.md --output output/cv.md
 ```
 
-### 4. 生成求职信
+### 5. 生成求职信
 
 ```bash
-python cli.py generate-cover-letter \
-  --profile my_profile.json \
-  --job sample_data/sample_job.md \
-  --letter-template templates/cover_letter_template.md \
-  --output output/letter.md
+python cli.py generate-cover-letter --profile my_profile.json --job sample_data/sample_job.md --letter-template templates/cover_letter_template.md --output output/letter.md
 ```
+
+## 常见错误
+
+### 1. `ModuleNotFoundError: No module named 'jinja2'`
+
+说明没有安装依赖，运行：
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. `File not found: sample_data/sample_job.md`
+
+说明你当前目录不对。请先进入项目目录：
+
+```bash
+cd jobpilot
+```
+
+然后再运行命令。
+
+### 3. Windows 复制多行命令出错
+
+不要复制带 `\` 的多行命令，直接用 README 里的“一行版”命令。
 
 ## 简历写法
 
