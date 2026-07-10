@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from typing import Dict, List, Optional
 
 
 SKILL_KEYWORDS = {
@@ -27,19 +28,19 @@ SKILL_KEYWORDS = {
     "vue": ["vue", "vue3"],
     "spring boot": ["spring boot", "springboot"],
     "mysql": ["mysql"],
-}
+}  # type: Dict[str, List[str]]
 
 
 @dataclass
 class Job:
     title: str
-    company: str | None
+    company: Optional[str]
     description: str
-    requirements: list[str] = field(default_factory=list)
-    skills: list[str] = field(default_factory=list)
+    requirements: List[str] = field(default_factory=list)
+    skills: List[str] = field(default_factory=list)
 
 
-def _extract_known_skills(text: str) -> list[str]:
+def _extract_known_skills(text: str) -> List[str]:
     text_lower = text.lower()
     found = []
     for canonical, aliases in SKILL_KEYWORDS.items():
@@ -68,8 +69,8 @@ def parse_job_description(text: str) -> Job:
         body_lines = lines[1:]
 
     bullet_pattern = re.compile(r"^[\-*•]\s*")
-    requirements: list[str] = []
-    description_parts: list[str] = []
+    requirements = []  # type: List[str]
+    description_parts = []  # type: List[str]
 
     for line in body_lines:
         if bullet_pattern.match(line):
