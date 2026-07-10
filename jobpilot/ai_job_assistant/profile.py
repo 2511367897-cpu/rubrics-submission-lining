@@ -38,14 +38,25 @@ class Profile:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Profile":
-        experience = [Experience(**item) for item in data.get("experience", [])]
-        education = [Education(**item) for item in data.get("education", [])]
+        if not isinstance(data, dict):
+            raise ValueError("Profile JSON must be an object.")
+        required = ["name", "email", "phone", "summary"]
+        missing = [key for key in required if key not in data]
+        if missing:
+            raise ValueError("Profile is missing required fields: " + ", ".join(missing))
+        if not isinstance(data.get("skills", []), list):
+            raise ValueError("Profile field 'skills' must be a list.")
+        try:
+            experience = [Experience(**item) for item in data.get("experience", [])]
+            education = [Education(**item) for item in data.get("education", [])]
+        except TypeError as exc:
+            raise ValueError("Invalid experience or education item: {0}".format(exc)) from exc
         return cls(
-            name=data.get("name", ""),
-            email=data.get("email", ""),
-            phone=data.get("phone", ""),
-            summary=data.get("summary", ""),
-            skills=[str(skill).lower() for skill in data.get("skills", [])],
+            name=str(data.get("name", "")).strip(),
+            email=str(data.get("email", "")).strip(),
+            phone=str(data.get("phone", "")).strip(),
+            summary=str(data.get("summary", "")).strip(),
+            skills=[str(skill).strip().lower() for skill in data.get("skills", []) if str(skill).strip()],
             experience=experience,
             education=education,
         )
@@ -57,9 +68,16 @@ class Profile:
 def load_profile(path: PathLike) -> Profile:
     profile_path = Path(path)
     if not profile_path.exists():
-        raise FileNotFoundError(f"Profile not found: {profile_path}")
-    with profile_path.open("r", encoding="utf-8") as file:
-        data = json.load(file)
+        raise FileNotFoundError("Profile not found: {0}".format(profile_path))
+    try:
+        with profile_path.open("r", encoding="utf-8") as file:
+            data = json.load(file)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            "Profile JSON is invalid at line {0}, column {1}: {2}".format(
+                exc.lineno, exc.colno, exc.msg
+            )
+        ) from exc
     return Profile.from_dict(data)
 
 
