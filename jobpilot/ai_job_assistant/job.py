@@ -4,6 +4,32 @@ import re
 from dataclasses import dataclass, field
 
 
+SKILL_KEYWORDS = {
+    "python": ["python"],
+    "javascript": ["javascript", "js"],
+    "html": ["html"],
+    "css": ["css"],
+    "fastapi": ["fastapi"],
+    "flask": ["flask"],
+    "api": ["api", "apis"],
+    "rest": ["rest", "restful"],
+    "json": ["json"],
+    "markdown": ["markdown"],
+    "git": ["git"],
+    "github": ["github"],
+    "jinja2": ["jinja2", "jinja"],
+    "llm": ["llm", "large language model", "large language models"],
+    "prompt engineering": ["prompt engineering", "prompt"],
+    "llm evaluation": ["llm evaluation", "model evaluation", "evaluate", "evaluation"],
+    "rubric": ["rubric", "rubrics", "scoring rules"],
+    "rag": ["rag", "retrieval augmented generation"],
+    "agent": ["agent", "agents"],
+    "vue": ["vue", "vue3"],
+    "spring boot": ["spring boot", "springboot"],
+    "mysql": ["mysql"],
+}
+
+
 @dataclass
 class Job:
     title: str
@@ -13,8 +39,22 @@ class Job:
     skills: list[str] = field(default_factory=list)
 
 
+def _extract_known_skills(text: str) -> list[str]:
+    text_lower = text.lower()
+    found = []
+    for canonical, aliases in SKILL_KEYWORDS.items():
+        if any(alias in text_lower for alias in aliases):
+            found.append(canonical)
+    return sorted(set(found))
+
+
 def parse_job_description(text: str) -> Job:
-    """Parse a plain text job description into structured data."""
+    """Parse a plain text job description into structured data.
+
+    The parser is intentionally conservative: it extracts a curated set of
+    technical and AI-related keywords instead of treating every English word as
+    a skill. This keeps the fit report readable for resume use.
+    """
     lines = [line.strip() for line in text.strip().splitlines() if line.strip()]
     if not lines:
         raise ValueError("Empty job description")
@@ -37,8 +77,7 @@ def parse_job_description(text: str) -> Job:
         else:
             description_parts.append(line)
 
-    words = re.findall(r"[A-Za-z]+", text.lower())
-    skills = sorted(set(words))
+    skills = _extract_known_skills(text)
 
     return Job(
         title=title,
