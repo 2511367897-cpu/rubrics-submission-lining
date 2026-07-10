@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -7,6 +8,7 @@ from ai_job_assistant.generator import render_cover_letter, render_cv
 from ai_job_assistant.job import parse_job_description
 from ai_job_assistant.profile import Education, Experience, Profile, load_profile
 from cli import main as cli_main
+from webapp import build_profile_from_form, process_submission
 
 
 class JobPilotTests(unittest.TestCase):
@@ -26,6 +28,13 @@ class JobPilotTests(unittest.TestCase):
         self.assertNotIn("rest", job.skills)
         self.assertIn("prompt engineering", job.skills)
         self.assertIn("python", job.skills)
+
+    def test_parser_supports_chinese_keywords(self):
+        job = parse_job_description("大模型评测实习生\n示例公司\n需要 Python、提示词工程、模型评测和评分标准经验。")
+        self.assertIn("python", job.skills)
+        self.assertIn("prompt engineering", job.skills)
+        self.assertIn("llm evaluation", job.skills)
+        self.assertIn("rubric", job.skills)
 
     def test_parser_supports_crlf(self):
         job = parse_job_description("Intern\r\nCompany\r\n- Python\r\n- JSON")
@@ -68,6 +77,28 @@ class JobPilotTests(unittest.TestCase):
             self.assertEqual(cli_main(["init-profile", "--output", str(path)]), 0)
             self.assertEqual(cli_main(["init-profile", "--output", str(path)]), 1)
             self.assertEqual(cli_main(["init-profile", "--output", str(path), "--force"]), 0)
+
+    def test_web_form_validation(self):
+        with self.assertRaisesRegex(ValueError, "岗位 JD"):
+            build_profile_from_form({"name": "Li", "email": "a@b.com", "summary": "x", "job": ""})
+
+    def test_web_submission_end_to_end(self):
+        form = {
+            "name": "Li Ning",
+            "email": "2511367897@qq.com",
+            "phone": "13163586952",
+            "summary": "AI undergraduate",
+            "skills": "python, llm, prompt engineering, rubric, json",
+            "job": "Prompt Intern\nExample Company\nNeed Python, LLM, prompt engineering, rubric and JSON.",
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            report, cv, letter, paths = process_submission(form, Path(tmp))
+            self.assertEqual(report["score"], 100.0)
+            self.assertIn("Li Ning", cv)
+            self.assertIn("Prompt Intern", letter)
+            self.assertTrue(all(path.exists() for path in paths.values()))
+            payload = json.loads(paths["report"].read_text(encoding="utf-8"))
+            self.assertEqual(payload["score"], 100.0)
 
     def test_quickstart_end_to_end(self):
         import quickstart
