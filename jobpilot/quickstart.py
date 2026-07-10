@@ -5,6 +5,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import List
 
 BASE_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = BASE_DIR / "output"
@@ -15,7 +16,7 @@ LETTER_PATH = OUTPUT_DIR / "letter.md"
 JOB_PATH = BASE_DIR / "sample_data" / "sample_job.md"
 
 
-def run(command: list[str]) -> None:
+def run(command: List[str]) -> None:
     print("\n$ " + " ".join(command))
     subprocess.run(command, cwd=BASE_DIR, check=True)
 
@@ -39,7 +40,7 @@ def main() -> None:
 
     print("\nDone. Generated files:")
     for path in [PROFILE_PATH, REPORT_PATH, CV_PATH, LETTER_PATH]:
-        print(f"- {path.relative_to(BASE_DIR)}")
+        print("- " + str(path.relative_to(BASE_DIR)))
 
     print("\nFit report preview:")
     print(json.dumps(json.loads(REPORT_PATH.read_text(encoding="utf-8")), indent=2, ensure_ascii=False))
