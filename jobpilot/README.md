@@ -1,38 +1,142 @@
 # JobPilot：AI 求职助手
 
-JobPilot 是一个轻量级 Python 求职辅助工具，完成以下流程：
+JobPilot 是一个可以在本机直接运行的求职辅助工具：
 
 ```text
-个人画像 → 岗位 JD 解析 → 技能匹配度评估 → 差距建议 → 简历生成 → 求职信生成
+填写个人信息和岗位 JD
+→ 识别中英文技术关键词
+→ 计算技能匹配度
+→ 输出能力差距和学习建议
+→ 生成定制简历与求职信
 ```
 
-项目重点展示：Python 工程化、文本结构化、规则评估、CLI 工具、文档生成和自动化测试。
+项目使用 Python 标准库即可运行，不需要 API Key，也不会把个人信息上传到外部服务器。
+
+## 直接使用图形页面
+
+### Windows
+
+下载或克隆项目后，进入 `jobpilot` 文件夹，双击：
+
+```text
+start_windows.bat
+```
+
+也可以在终端运行：
+
+```bat
+py run.py
+```
+
+### macOS
+
+进入 `jobpilot` 文件夹后运行：
+
+```bash
+python3 run.py
+```
+
+仓库里也提供了 `start_macos.command`。由于 ZIP 下载或 GitHub 文件权限可能丢失，首次使用可运行：
+
+```bash
+chmod +x start_macos.command
+./start_macos.command
+```
+
+### Linux
+
+```bash
+python3 run.py
+```
+
+启动后程序会自动寻找可用端口并打开浏览器。没有自动打开时，终端会显示类似地址：
+
+```text
+http://127.0.0.1:8000
+```
+
+在网页中填写姓名、邮箱、简介、技能和岗位 JD，点击“开始分析并生成材料”即可。
+
+## 网页版会生成什么
+
+生成结果保存在本机：
+
+```text
+output/web/profile.json
+output/web/report.json
+output/web/cv.md
+output/web/cover_letter.md
+```
+
+网页中也可以直接下载这四个文件。
+
+匹配报告包含：
+
+```text
+score
+matched_skills
+missing_skills
+recommendations
+summary
+detected_job_skills
+```
+
+## 支持的岗位内容
+
+岗位 JD 可以是中文或英文。当前规则库可识别的部分关键词包括：
+
+- Python、JavaScript、TypeScript、HTML、CSS、FastAPI、Flask、Django；
+- SQL、MySQL、PostgreSQL、Git、GitHub、Docker、Linux；
+- LLM、大模型、Prompt Engineering、提示词工程；
+- LLM Evaluation、模型评测、Rubric、评分标准；
+- RAG、Agent、机器学习、深度学习、PyTorch、TensorFlow；
+- Vue、React、Spring Boot 等。
+
+英文关键词采用边界匹配，避免把 `interested` 中的 `rest` 错误识别成 REST 技能。
 
 ## 环境要求
 
-- Python 3.8 或以上。
-- 支持 Windows、macOS、Linux。
-- **无必装第三方依赖**：纯 Python 标准库即可运行。
-- Jinja2 仅为可选项；未安装时会自动使用内置 Markdown 生成器。
+- Python 3.8 或以上；
+- Windows、macOS、Linux；
+- 无必装第三方依赖；
+- Jinja2 是可选依赖，未安装时自动使用内置 Markdown 生成器。
 
-## 最简单用法
+## 运行自检和测试
 
-进入 `jobpilot` 目录后运行：
+先检查环境：
+
+```bash
+python doctor.py
+```
+
+macOS/Linux 可将 `python` 换成 `python3`。
+
+运行全部回归测试：
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+测试覆盖：
+
+- 中英文技能关键词识别；
+- 英文单词边界和误匹配防护；
+- Windows CRLF 换行；
+- 空技能岗位评分；
+- 错误 JSON 的可读提示；
+- 无 Jinja2、无模板文件时的材料生成；
+- CLI 文件覆盖保护；
+- 网页表单验证和网页版端到端生成；
+- quickstart 完整流程。
+
+GitHub Actions 会在 Python 3.8、3.10、3.12 上执行诊断、代码编译、测试和一键运行。
+
+## 命令行一键演示
+
+不使用网页时，可以运行：
 
 ```bash
 python quickstart.py
-```
-
-macOS/Linux 也可使用：
-
-```bash
-python3 quickstart.py
-```
-
-Windows 也可使用：
-
-```bat
-py quickstart.py
 ```
 
 成功后会生成：
@@ -44,53 +148,21 @@ output/cv.md
 output/letter.md
 ```
 
-并显示：
+## 命令行手动使用
 
-```text
-SUCCESS: JobPilot completed without errors.
-```
-
-## 运行前自检
-
-```bash
-python doctor.py
-```
-
-它会检查 Python 版本、项目文件和核心模块导入情况。
-
-## 运行测试
-
-```bash
-python -m unittest discover -s tests -v
-```
-
-测试覆盖：
-
-- 技能关键词边界匹配，避免把 `interested` 误识别成 `rest`。
-- Windows CRLF 换行格式。
-- 空技能岗位评分。
-- 无 Jinja2、无模板文件时的内置生成器。
-- 错误 JSON 的可读提示。
-- CLI 防止误覆盖个人档案。
-- quickstart 端到端流程。
-
-GitHub Actions 会在 Python 3.8、3.10、3.12 上执行诊断、编译、单元测试和一键运行。
-
-## 手动使用
-
-### 1. 创建个人档案
+创建个人档案：
 
 ```bash
 python cli.py init-profile --output my_profile.json
 ```
 
-文件已存在时不会直接覆盖。确认需要覆盖时：
+已有文件默认不会覆盖。确定覆盖时：
 
 ```bash
 python cli.py init-profile --output my_profile.json --force
 ```
 
-### 2. 评估岗位匹配度
+评估岗位：
 
 ```bash
 python cli.py evaluate-job \
@@ -99,18 +171,7 @@ python cli.py evaluate-job \
   --output output/report.json
 ```
 
-报告包含：
-
-```text
-score
-matched_skills
-missing_skills
-recommendations
-summary
-detected_job_skills
-```
-
-### 3. 生成简历
+生成简历：
 
 ```bash
 python cli.py generate-cv \
@@ -119,7 +180,7 @@ python cli.py generate-cv \
   --output output/cv.md
 ```
 
-### 4. 生成求职信
+生成求职信：
 
 ```bash
 python cli.py generate-cover-letter \
@@ -128,17 +189,17 @@ python cli.py generate-cover-letter \
   --output output/letter.md
 ```
 
-模板参数已有默认值，因此不必手动输入模板路径。
-
 ## 项目结构
 
 ```text
 jobpilot/
-├── README.md
-├── cli.py
-├── quickstart.py
-├── doctor.py
-├── requirements.txt
+├── run.py                  # 自动打开网页版
+├── webapp.py               # 标准库 Web 应用
+├── start_windows.bat       # Windows 启动器
+├── start_macos.command     # macOS 启动器
+├── cli.py                  # 命令行工具
+├── quickstart.py           # 一键演示
+├── doctor.py               # 环境诊断
 ├── ai_job_assistant/
 │   ├── profile.py
 │   ├── job.py
@@ -153,15 +214,15 @@ jobpilot/
 
 ```text
 JobPilot：AI 求职助手 / 岗位匹配与申请材料生成系统｜个人项目
-技术栈：Python、JSON、CLI、规则引擎、Jinja2（可选）、GitHub Actions
+技术栈：Python、HTTP Server、JSON、HTML/CSS、CLI、规则引擎、GitHub Actions
 
 - 设计候选人画像、岗位 JD 解析、技能匹配度评估和申请材料生成流程。
-- 使用 dataclass 构建 Profile、Job 等数据结构，将非结构化岗位文本转为结构化技能数据。
-- 实现关键词边界匹配与技能差距分析，输出匹配分、已匹配技能、缺失技能和改进建议。
+- 构建中英文技能关键词库与正则边界匹配逻辑，将非结构化岗位文本转为结构化技能数据。
+- 使用 Python 标准库实现本地 Web 应用，支持表单输入、结果预览和报告/简历/求职信下载。
 - 实现无第三方依赖的 Markdown 简历与求职信生成器，并支持可选 Jinja2 自定义模板。
-- 编写环境诊断、端到端 quickstart、8 项回归测试及 Python 3.8/3.10/3.12 CI 流程。
+- 编写环境诊断、端到端流程、回归测试和 Python 3.8/3.10/3.12 CI。
 ```
 
 ## 项目边界
 
-当前版本是规则型 AI 应用原型，不会调用真实大模型，也不会自动投递岗位。后续可接入 LLM API、Web 页面、岗位数据库和 PDF 导出功能。
+当前版本是**规则型 AI 应用原型**，匹配分代表已识别技术关键词的覆盖率，不代表真实招聘录用概率。项目目前不会调用真实大模型，也不会自动投递岗位。
