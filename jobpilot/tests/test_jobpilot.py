@@ -1,6 +1,8 @@
 import json
 import tempfile
+import threading
 import unittest
+import urllib.request
 from pathlib import Path
 
 from ai_job_assistant.evaluator import evaluate_fit
@@ -8,7 +10,7 @@ from ai_job_assistant.generator import render_cover_letter, render_cv
 from ai_job_assistant.job import parse_job_description
 from ai_job_assistant.profile import Education, Experience, Profile, load_profile
 from cli import main as cli_main
-from webapp import build_profile_from_form, process_submission
+from webapp import _page, build_profile_from_form, create_server, process_submission
 
 
 class JobPilotTests(unittest.TestCase):
@@ -18,19 +20,46 @@ class JobPilotTests(unittest.TestCase):
             email="2511367897@qq.com",
             phone="13163586952",
             summary="AI undergraduate focused on Prompt Engineering and LLM evaluation.",
-            skills=["python", "llm", "prompt engineering", "llm evaluation", "rubric", "json", "markdown"],
-            experience=[Experience(company="TalentsAI", role="Evaluator", description="Reviewed model outputs.", start_year=2025)],
-            education=[Education(institution="Henan Institute of Technology", degree="Bachelor", field="Artificial Intelligence", start_year=2024, end_year=2028)],
+            skills=[
+                "python",
+                "llm",
+                "prompt engineering",
+                "llm evaluation",
+                "rubric",
+                "json",
+                "markdown",
+            ],
+            experience=[
+                Experience(
+                    company="TalentsAI",
+                    role="Evaluator",
+                    description="Reviewed model outputs.",
+                    start_year=2025,
+                )
+            ],
+            education=[
+                Education(
+                    institution="Henan Institute of Technology",
+                    degree="Bachelor",
+                    field="Artificial Intelligence",
+                    start_year=2024,
+                    end_year=2028,
+                )
+            ],
         )
 
     def test_parser_avoids_substring_false_positive(self):
-        job = parse_job_description("Prompt Intern\nExample Company\nWe are interested in prompt engineering and Python.")
+        job = parse_job_description(
+            "Prompt Intern\nExample Company\nWe are interested in prompt engineering and Python."
+        )
         self.assertNotIn("rest", job.skills)
         self.assertIn("prompt engineering", job.skills)
         self.assertIn("python", job.skills)
 
     def test_parser_supports_chinese_keywords(self):
-        job = parse_job_description("大模型评测实习生\n示例公司\n需要 Python、提示词工程、模型评测和评分标准经验。")
+        job = parse_job_description(
+            "大模型评测实习生\n示例公司\n需要 Python、提示词工程、模型评测和评分标准经验。"
+        )
         self.assertIn("python", job.skills)
         self.assertIn("prompt engineering", job.skills)
         self.assertIn("llm evaluation", job.skills)
@@ -42,21 +71,33 @@ class JobPilotTests(unittest.TestCase):
         self.assertEqual(len(job.requirements), 2)
 
     def test_fit_report_is_structured(self):
-        report = evaluate_fit(self.build_profile(), parse_job_description("Prompt Intern\nExample Company\nPython, LLM evaluation, rubric and JSON."))
+        report = evaluate_fit(
+            self.build_profile(),
+            parse_job_description(
+                "Prompt Intern\nExample Company\nPython, LLM evaluation, rubric and JSON."
+            ),
+        )
         self.assertEqual(report["score"], 100.0)
         self.assertEqual(report["missing_skills"], [])
         self.assertIn("summary", report)
         self.assertIn("detected_job_skills", report)
 
     def test_no_skill_job_returns_zero(self):
-        report = evaluate_fit(self.build_profile(), parse_job_description("Office Intern\nExample Company\nHelp with general office work."))
+        report = evaluate_fit(
+            self.build_profile(),
+            parse_job_description(
+                "Office Intern\nExample Company\nHelp with general office work."
+            ),
+        )
         self.assertEqual(report["score"], 0.0)
 
     def test_generators_work_without_template_files(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             profile = self.build_profile()
-            job = parse_job_description("Prompt Intern\nExample Company\nPython and prompt engineering.")
+            job = parse_job_description(
+                "Prompt Intern\nExample Company\nPython and prompt engineering."
+            )
             cv_path = root / "cv.md"
             letter_path = root / "letter.md"
             render_cv(profile, job, root / "missing.md", cv_path)
@@ -76,11 +117,21 @@ class JobPilotTests(unittest.TestCase):
             path = Path(tmp) / "profile.json"
             self.assertEqual(cli_main(["init-profile", "--output", str(path)]), 0)
             self.assertEqual(cli_main(["init-profile", "--output", str(path)]), 1)
-            self.assertEqual(cli_main(["init-profile", "--output", str(path), "--force"]), 0)
+            self.assertEqual(
+                cli_main(["init-profile", "--output", str(path), "--force"]), 0
+            )
 
     def test_web_form_validation(self):
         with self.assertRaisesRegex(ValueError, "岗位 JD"):
-            build_profile_from_form({"name": "Li", "email": "a@b.com", "summary": "x", "job": ""})
+            build_profile_from_form(
+                {"name": "Li", "email": "a@b.com", "summary": "x", "job": ""}
+            )
+
+    def test_web_page_renders(self):
+        page = _page()
+        self.assertIn("JobPilot AI 求职助手", page)
+        self.assertIn("<style>", page)
+        self.assertIn("开始分析并生成材料", page)
 
     def test_web_submission_end_to_end(self):
         form = {
@@ -99,11 +150,40 @@ class JobPilotTests(unittest.TestCase):
             self.assertTrue(all(path.exists() for path in paths.values()))
             payload = json.loads(paths["report"].read_text(encoding="utf-8"))
             self.assertEqual(payload["score"], 100.0)
+            rendered = _page(form=form, result=(report, cv, letter, paths))
+            self.assertIn("100.0%", rendered)
+            self.assertIn("下载简历", rendered)
+
+    def test_http_server_home_and_health(self):
+        server = create_server("127.0.0.1", 0)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            host, port = server.server_address
+            with urllib.request.urlopen(
+                "http://{0}:{1}/".format(host, port), timeout=5
+            ) as response:
+                self.assertEqual(response.status, 200)
+                self.assertIn(
+                    "JobPilot AI 求职助手",
+                    response.read().decode("utf-8"),
+                )
+            with urllib.request.urlopen(
+                "http://{0}:{1}/health".format(host, port), timeout=5
+            ) as response:
+                self.assertEqual(json.loads(response.read().decode("utf-8"))["status"], "ok")
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
 
     def test_quickstart_end_to_end(self):
         import quickstart
+
         self.assertEqual(quickstart.main(), 0)
-        self.assertTrue((Path(__file__).resolve().parents[1] / "output" / "report.json").exists())
+        self.assertTrue(
+            (Path(__file__).resolve().parents[1] / "output" / "report.json").exists()
+        )
 
 
 if __name__ == "__main__":
