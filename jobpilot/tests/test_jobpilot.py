@@ -1,3 +1,5 @@
+import tempfile
+import unittest
 from pathlib import Path
 
 from ai_job_assistant.evaluator import evaluate_fit
@@ -18,32 +20,37 @@ def build_profile():
     )
 
 
-def test_parser_avoids_substring_false_positive():
-    job = parse_job_description("Prompt Intern\nExample Company\nWe are interested in prompt engineering and Python.")
-    assert "rest" not in job.skills
-    assert "prompt engineering" in job.skills
-    assert "python" in job.skills
+class JobPilotTests(unittest.TestCase):
+    def test_parser_avoids_substring_false_positive(self):
+        job = parse_job_description("Prompt Intern\nExample Company\nWe are interested in prompt engineering and Python.")
+        self.assertNotIn("rest", job.skills)
+        self.assertIn("prompt engineering", job.skills)
+        self.assertIn("python", job.skills)
+
+    def test_fit_report_is_structured(self):
+        profile = build_profile()
+        job = parse_job_description("Prompt Intern\nExample Company\nPython, LLM evaluation, rubric and JSON.")
+        report = evaluate_fit(profile, job)
+        self.assertEqual(report["score"], 100.0)
+        self.assertEqual(report["missing_skills"], [])
+
+    def test_generators_work_without_template_files(self):
+        profile = build_profile()
+        job = parse_job_description("Prompt Intern\nExample Company\nPython and prompt engineering.")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            cv_path = temp_path / "cv.md"
+            letter_path = temp_path / "letter.md"
+            missing_template = temp_path / "missing-template.md"
+
+            render_cv(profile, job, missing_template, cv_path)
+            render_cover_letter(profile, job, missing_template, letter_path)
+
+            self.assertTrue(cv_path.exists())
+            self.assertTrue(letter_path.exists())
+            self.assertIn("Li Ning", cv_path.read_text(encoding="utf-8"))
+            self.assertIn("Prompt Intern", letter_path.read_text(encoding="utf-8"))
 
 
-def test_fit_report_is_structured():
-    profile = build_profile()
-    job = parse_job_description("Prompt Intern\nExample Company\nPython, LLM evaluation, rubric and JSON.")
-    report = evaluate_fit(profile, job)
-    assert report["score"] == 100.0
-    assert report["missing_skills"] == []
-
-
-def test_generators_work_without_template_files(tmp_path: Path):
-    profile = build_profile()
-    job = parse_job_description("Prompt Intern\nExample Company\nPython and prompt engineering.")
-    cv_path = tmp_path / "cv.md"
-    letter_path = tmp_path / "letter.md"
-    missing_template = tmp_path / "missing-template.md"
-
-    render_cv(profile, job, missing_template, cv_path)
-    render_cover_letter(profile, job, missing_template, letter_path)
-
-    assert cv_path.exists()
-    assert letter_path.exists()
-    assert "Li Ning" in cv_path.read_text(encoding="utf-8")
-    assert "Prompt Intern" in letter_path.read_text(encoding="utf-8")
+if __name__ == "__main__":
+    unittest.main()
