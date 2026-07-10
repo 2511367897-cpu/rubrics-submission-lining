@@ -19,14 +19,26 @@ from cli import default_profile_data
 BASE_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = BASE_DIR / "output" / "web"
 DEFAULT_JOB = (BASE_DIR / "sample_data" / "sample_job.md").read_text(encoding="utf-8")
+MAX_FORM_BYTES = 2_000_000
 
 
 def _split_skills(value: str) -> List[str]:
-    return sorted({item.strip().lower() for item in re.split(r"[,，\n;；]+", value) if item.strip()})
+    return sorted(
+        {
+            item.strip().lower()
+            for item in re.split(r"[,，\n;；]+", value)
+            if item.strip()
+        }
+    )
 
 
 def build_profile_from_form(form: Dict[str, str]) -> Profile:
-    required = {"name": "姓名", "email": "邮箱", "summary": "个人简介", "job": "岗位 JD"}
+    required = {
+        "name": "姓名",
+        "email": "邮箱",
+        "summary": "个人简介",
+        "job": "岗位 JD",
+    }
     missing = [label for key, label in required.items() if not form.get(key, "").strip()]
     if missing:
         raise ValueError("请填写：" + "、".join(missing))
@@ -60,8 +72,15 @@ def process_submission(
         "profile": target / "profile.json",
     }
 
-    paths["report"].write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
-    render_cv(profile, job, BASE_DIR / "templates" / "cv_template.md", paths["cv"])
+    paths["report"].write_text(
+        json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    render_cv(
+        profile,
+        job,
+        BASE_DIR / "templates" / "cv_template.md",
+        paths["cv"],
+    )
     render_cover_letter(
         profile,
         job,
@@ -100,65 +119,50 @@ def _page(
     result_html = ""
     if result:
         report, cv, letter, _paths = result
-        matched = "、".join(report["matched_skills"]) or "暂无"
-        missing = "、".join(report["missing_skills"]) or "暂无"
+        matched_skills = report.get("matched_skills", [])
+        missing_skills = report.get("missing_skills", [])
+        recommendations = report.get("recommendations", [])
+        matched = "、".join(str(item) for item in matched_skills) or "暂无"
+        missing = "、".join(str(item) for item in missing_skills) or "暂无"
         recs = "".join(
-            "<li>{}</li>".format(html.escape(item))
-            for item in report["recommendations"]
-        )
-        result_html = """
+            "<li>{0}</li>".format(html.escape(str(item)))
+            for item in recommendations
+        ) or "<li>当前没有额外技能建议。</li>"
+        result_html = f"""
         <section class='results'>
-          <div class='score'><strong>{score}%</strong><span>{summary}</span></div>
-          <div class='grid'><div><h3>已匹配技能</h3><p>{matched}</p></div><div><h3>建议补充</h3><p>{missing}</p></div></div>
+          <div class='score'><strong>{html.escape(str(report.get('score', 0)))}%</strong><span>{html.escape(str(report.get('summary', '')))}</span></div>
+          <div class='grid'><div><h3>已匹配技能</h3><p>{html.escape(matched)}</p></div><div><h3>建议补充</h3><p>{html.escape(missing)}</p></div></div>
           <h3>行动建议</h3><ul>{recs}</ul>
           <div class='downloads'><a href='/download?file=report'>下载报告</a><a href='/download?file=cv'>下载简历</a><a href='/download?file=letter'>下载求职信</a><a href='/download?file=profile'>下载个人档案</a></div>
-          <details><summary>预览简历</summary><pre>{cv}</pre></details>
-          <details><summary>预览求职信</summary><pre>{letter}</pre></details>
-        </section>
-        """.format(
-            score=report["score"],
-            summary=html.escape(str(report["summary"])),
-            matched=html.escape(matched),
-            missing=html.escape(missing),
-            recs=recs,
-            cv=html.escape(cv),
-            letter=html.escape(letter),
-        )
+          <details><summary>预览简历</summary><pre>{html.escape(cv)}</pre></details>
+          <details><summary>预览求职信</summary><pre>{html.escape(letter)}</pre></details>
+        </section>"""
 
-    error_html = "<div class='error'>{}</div>".format(html.escape(error)) if error else ""
-    return """<!doctype html>
+    error_html = "<div class='error'>{0}</div>".format(html.escape(error)) if error else ""
+    return f"""<!doctype html>
 <html lang='zh-CN'>
 <head>
 <meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>
 <title>JobPilot</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f7fb;color:#172033}
-header{background:#111827;color:white;padding:34px 20px}header div,main{max-width:1100px;margin:auto}h1{margin:0 0 8px}main{padding:24px 20px}
-form,.results{background:white;border:1px solid #dbe3ef;border-radius:18px;padding:22px;box-shadow:0 12px 30px rgba(15,23,42,.08);margin-bottom:22px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}label{display:block;font-weight:700;margin-bottom:6px}input,textarea{width:100%;border:1px solid #cbd5e1;border-radius:10px;padding:11px;font:inherit}textarea{min-height:120px;resize:vertical}.field{margin-bottom:16px}
-button{border:0;border-radius:10px;background:#2563eb;color:#fff;padding:12px 18px;font-weight:700;cursor:pointer}.score{display:flex;align-items:center;gap:20px;border-bottom:1px solid #e5e7eb;padding-bottom:18px;margin-bottom:18px}.score strong{font-size:42px;color:#2563eb}
-.downloads{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0}.downloads a{text-decoration:none;background:#eef2ff;color:#1d4ed8;padding:10px 14px;border-radius:9px;font-weight:700}pre{white-space:pre-wrap;background:#0f172a;color:#e2e8f0;padding:16px;border-radius:10px;overflow:auto}.error{background:#fee2e2;color:#991b1b;padding:13px;border-radius:10px;margin-bottom:18px}
-@media(max-width:720px){.grid{grid-template-columns:1fr}}
+*{{box-sizing:border-box}}body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f7fb;color:#172033}}
+header{{background:#111827;color:white;padding:34px 20px}}header div,main{{max-width:1100px;margin:auto}}h1{{margin:0 0 8px}}main{{padding:24px 20px}}
+form,.results{{background:white;border:1px solid #dbe3ef;border-radius:18px;padding:22px;box-shadow:0 12px 30px rgba(15,23,42,.08);margin-bottom:22px}}
+.grid{{display:grid;grid-template-columns:1fr 1fr;gap:16px}}label{{display:block;font-weight:700;margin-bottom:6px}}input,textarea{{width:100%;border:1px solid #cbd5e1;border-radius:10px;padding:11px;font:inherit}}textarea{{min-height:120px;resize:vertical}}.field{{margin-bottom:16px}}
+button{{border:0;border-radius:10px;background:#2563eb;color:#fff;padding:12px 18px;font-weight:700;cursor:pointer}}.score{{display:flex;align-items:center;gap:20px;border-bottom:1px solid #e5e7eb;padding-bottom:18px;margin-bottom:18px}}.score strong{{font-size:42px;color:#2563eb}}
+.downloads{{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0}}.downloads a{{text-decoration:none;background:#eef2ff;color:#1d4ed8;padding:10px 14px;border-radius:9px;font-weight:700}}pre{{white-space:pre-wrap;background:#0f172a;color:#e2e8f0;padding:16px;border-radius:10px;overflow:auto}}.error{{background:#fee2e2;color:#991b1b;padding:13px;border-radius:10px;margin-bottom:18px}}
+@media(max-width:720px){{.grid{{grid-template-columns:1fr}}}}
 </style>
 </head>
-<body><header><div><h1>JobPilot AI 求职助手</h1><p>填写个人信息和岗位 JD，一键生成匹配报告、定制简历和求职信。</p></div></header>
-<main>{error}
+<body><header><div><h1>JobPilot AI 求职助手</h1><p>填写个人信息和岗位 JD，一键生成匹配报告、定制简历和求职信。全部数据只保存在本机。</p></div></header>
+<main>{error_html}
 <form method='post' action='/analyze'>
-<div class='grid'><div class='field'><label>姓名</label><input name='name' value='{name}'></div><div class='field'><label>邮箱</label><input name='email' value='{email}'></div></div>
-<div class='field'><label>电话</label><input name='phone' value='{phone}'></div>
-<div class='field'><label>个人简介</label><textarea name='summary'>{summary}</textarea></div>
-<div class='field'><label>技能（逗号或换行分隔）</label><textarea name='skills'>{skills}</textarea></div>
-<div class='field'><label>岗位 JD（第一行岗位名，第二行公司名）</label><textarea name='job' style='min-height:260px'>{job}</textarea></div>
-<button type='submit'>开始分析并生成材料</button></form>{result}</main></body></html>""".format(
-        error=error_html,
-        name=esc("name"),
-        email=esc("email"),
-        phone=esc("phone"),
-        summary=esc("summary"),
-        skills=esc("skills"),
-        job=esc("job"),
-        result=result_html,
-    )
+<div class='grid'><div class='field'><label>姓名</label><input name='name' value='{esc('name')}'></div><div class='field'><label>邮箱</label><input name='email' type='email' value='{esc('email')}'></div></div>
+<div class='field'><label>电话</label><input name='phone' value='{esc('phone')}'></div>
+<div class='field'><label>个人简介</label><textarea name='summary'>{esc('summary')}</textarea></div>
+<div class='field'><label>技能（逗号或换行分隔）</label><textarea name='skills'>{esc('skills')}</textarea></div>
+<div class='field'><label>岗位 JD（第一行岗位名，第二行公司名）</label><textarea name='job' style='min-height:260px'>{esc('job')}</textarea></div>
+<button type='submit'>开始分析并生成材料</button></form>{result_html}</main></body></html>"""
 
 
 class JobPilotHandler(BaseHTTPRequestHandler):
@@ -178,7 +182,7 @@ class JobPilotHandler(BaseHTTPRequestHandler):
         if parsed.path == "/health":
             payload = b'{"status":"ok"}'
             self.send_response(200)
-            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(payload)))
             self.end_headers()
             self.wfile.write(payload)
@@ -197,8 +201,13 @@ class JobPilotHandler(BaseHTTPRequestHandler):
                 return
             data = path.read_bytes()
             self.send_response(200)
-            self.send_header("Content-Type", mimetypes.guess_type(path.name)[0] or "application/octet-stream")
-            self.send_header("Content-Disposition", 'attachment; filename="{}"'.format(path.name))
+            self.send_header(
+                "Content-Type",
+                mimetypes.guess_type(path.name)[0] or "application/octet-stream",
+            )
+            self.send_header(
+                "Content-Disposition", 'attachment; filename="{0}"'.format(path.name)
+            )
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)
@@ -209,17 +218,19 @@ class JobPilotHandler(BaseHTTPRequestHandler):
         if self.path != "/analyze":
             self.send_error(404)
             return
-        form = None
+        form = None  # type: Optional[Dict[str, str]]
         try:
             length = int(self.headers.get("Content-Length", "0"))
-            if length > 2_000_000:
+            if length <= 0:
+                raise ValueError("没有收到表单内容。")
+            if length > MAX_FORM_BYTES:
                 raise ValueError("提交内容过大。")
             raw = self.rfile.read(length).decode("utf-8")
             parsed = urllib.parse.parse_qs(raw, keep_blank_values=True)
             form = {key: values[0] for key, values in parsed.items()}
             result = process_submission(form)
             self._send_html(_page(form=form, result=result))
-        except (ValueError, OSError) as exc:
+        except (UnicodeDecodeError, ValueError, OSError) as exc:
             self._send_html(_page(form=form, error=str(exc)), status=400)
 
     def log_message(self, format: str, *args: object) -> None:
