@@ -1,0 +1,33 @@
+name: JobPilot CI
+
+on:
+  push:
+    paths:
+      - "jobpilot/**"
+      - ".github/workflows/jobpilot-ci.yml"
+  pull_request:
+    paths:
+      - "jobpilot/**"
+      - ".github/workflows/jobpilot-ci.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.10", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Compile Python files
+        working-directory: jobpilot
+        run: python -m compileall -q .
+      - name: Run quickstart without third-party dependencies
+        working-directory: jobpilot
+        run: python quickstart.py
+      - name: Run regression tests
+        working-directory: jobpilot
+        run: python -m unittest discover -s tests -p "test_*.py"
