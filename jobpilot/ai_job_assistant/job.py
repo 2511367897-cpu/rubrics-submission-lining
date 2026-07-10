@@ -40,29 +40,33 @@ class Job:
     skills: List[str] = field(default_factory=list)
 
 
+def _alias_present(text: str, alias: str) -> bool:
+    """Match aliases as complete tokens or phrases, not arbitrary substrings.
+
+    This avoids false positives such as matching the skill ``rest`` inside the
+    word ``interested``.
+    """
+    pattern = r"(?<![a-z0-9])" + re.escape(alias.lower()) + r"(?![a-z0-9])"
+    return re.search(pattern, text.lower()) is not None
+
+
 def _extract_known_skills(text: str) -> List[str]:
-    text_lower = text.lower()
-    found = []
+    found = []  # type: List[str]
     for canonical, aliases in SKILL_KEYWORDS.items():
-        if any(alias in text_lower for alias in aliases):
+        if any(_alias_present(text, alias) for alias in aliases):
             found.append(canonical)
     return sorted(set(found))
 
 
 def parse_job_description(text: str) -> Job:
-    """Parse a plain text job description into structured data.
-
-    The parser is intentionally conservative: it extracts a curated set of
-    technical and AI-related keywords instead of treating every English word as
-    a skill. This keeps the fit report readable for resume use.
-    """
+    """Parse a plain-text job description into structured data."""
     lines = [line.strip() for line in text.strip().splitlines() if line.strip()]
     if not lines:
-        raise ValueError("Empty job description")
+        raise ValueError("Job description is empty")
 
     title = lines[0]
-    company = None
-    if len(lines) > 1 and re.match(r"^[A-Za-z][A-Za-z0-9 &.,'-]+$", lines[1]):
+    company = None  # type: Optional[str]
+    if len(lines) > 1 and not lines[1].startswith(("-", "*", "•")):
         company = lines[1]
         body_lines = lines[2:]
     else:
@@ -78,12 +82,10 @@ def parse_job_description(text: str) -> Job:
         else:
             description_parts.append(line)
 
-    skills = _extract_known_skills(text)
-
     return Job(
         title=title,
         company=company,
         description="\n".join(description_parts),
         requirements=requirements,
-        skills=skills,
+        skills=_extract_known_skills(text),
     )
