@@ -1,1 +1,2 @@
-jinja2>=3.0.0
+# No required third-party dependencies.
+# Jinja2 is optional; built-in Markdown rendering is used when unavailable.
