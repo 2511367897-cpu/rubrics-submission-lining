@@ -17,11 +17,6 @@ def _write_text(output_path: PathLike, content: str) -> None:
 
 
 def _try_jinja_render(template_path: PathLike, context: Dict[str, Any]) -> Optional[str]:
-    """Render with Jinja2 when available; otherwise return ``None``.
-
-    Jinja2 is optional so the project can run on a clean Python installation
-    without downloading packages.
-    """
     template = Path(template_path)
     if not template.exists():
         return None
@@ -59,6 +54,8 @@ def _built_in_cv(profile: Profile, job: Optional[Job]) -> str:
     lines.extend(["", "## Skills", ""])
     lines.extend("- " + skill for skill in profile.skills)
     lines.extend(["", "## Experience", ""])
+    if not profile.experience:
+        lines.append("- No experience added yet.")
     for item in profile.experience:
         end_year = str(item.end_year) if item.end_year is not None else "Present"
         lines.extend([
@@ -68,6 +65,8 @@ def _built_in_cv(profile: Profile, job: Optional[Job]) -> str:
             "",
         ])
     lines.extend(["## Education", ""])
+    if not profile.education:
+        lines.append("- No education added yet.")
     for item in profile.education:
         end_year = str(item.end_year) if item.end_year is not None else "Present"
         lines.append(
