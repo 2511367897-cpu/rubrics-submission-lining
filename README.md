@@ -1,82 +1,161 @@
-# JobPilot：AI 求职助手 / 简历匹配与求职信生成系统
+# 李宁｜AI 评测与应用项目集
 
-这是一个参考 GitHub 高星项目 **ai-job-search** 思路改造的个人项目，定位为：
+[![CI](https://github.com/2511367897-cpu/rubrics-submission-lining/actions/workflows/ci.yml/badge.svg)](https://github.com/2511367897-cpu/rubrics-submission-lining/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/Python-3.11-blue)
+![Focus](https://img.shields.io/badge/Focus-LLM%20Evaluation%20%7C%20AI%20Application-1f6feb)
 
-> **AI Career Copilot：岗位解析 → 简历匹配度评估 → 技能差距分析 → 定制简历 → 求职信生成**
+> 面向 **大模型评测 / Prompt 工程 / AI 数据质量 / Python AI 应用开发实习** 的个人项目集。
 
-项目不再只是简单的 Rubric 文档，而是一个可以直接运行的 Python 小工具，适合放在简历里展示 **Prompt 工程、AI 应用开发、岗位 JD 分析、文档生成、Python 工程化** 能力。
+这个仓库包含两个可以实际运行、可以在面试中演示的项目：
 
-## 为什么这个项目更适合放简历
+| 项目 | 解决的问题 | 核心技术 | 入口 |
+|---|---|---|---|
+| **EvalPilot** | 用透明、可复核的 Rubric 规则评测模型回答 | Python、FastAPI、规则引擎、pytest、Docker | [查看 EvalPilot](#evalpilotllm-rubric-评测平台) |
+| **JobPilot** | 解析岗位 JD、计算技能匹配度并生成申请材料 | Python、HTTP Server、JSON、CLI、正则匹配、GitHub Actions | [进入 JobPilot](./jobpilot) |
 
-很多 AI 岗位、Prompt 岗位、数据评测岗位都会要求候选人具备：
+---
 
-- 能理解岗位 JD 和业务需求；
-- 能把非结构化文本转成结构化数据；
-- 能设计评分规则和匹配逻辑；
-- 能使用 AI/模板工具生成简历、求职信、报告；
-- 能把想法做成一个可运行的工具。
+## EvalPilot：LLM Rubric 评测平台
 
-JobPilot 正好覆盖这些点。
+EvalPilot 是一个轻量级、可解释的模型回答评测原型。
 
-## 项目入口
-
-核心项目在：[`jobpilot/`](./jobpilot)
+### 核心流程
 
 ```text
-jobpilot/
-├── README.md
-├── cli.py
-├── requirements.txt
-├── ai_job_assistant/
-│   ├── profile.py
-│   ├── job.py
-│   ├── evaluator.py
-│   └── generator.py
-├── templates/
-│   ├── cv_template.md
-│   └── cover_letter_template.md
-├── sample_data/
-│   └── sample_job.md
-└── docs/
-    └── interview_pitch.md
+评测任务 + 模型回答
+→ 检查必需关键点
+→ 检查错误模式
+→ 检查回答结构与边界条件
+→ 输出分数、等级、错误类型、证据和修改建议
 ```
 
-## 核心功能
+### 已实现功能
 
-- **个人档案管理**：用 JSON 保存姓名、联系方式、技能、经历和教育背景。
-- **岗位 JD 解析**：从岗位文本中解析职位名、公司名、要求和关键词。
-- **匹配度评分**：计算个人技能与岗位关键词的匹配度，输出 matched skills / missing skills / recommendations。
-- **简历生成**：根据岗位信息自动生成定制版 Markdown 简历。
-- **求职信生成**：根据岗位和匹配度自动生成求职信草稿。
-- **CLI 命令行工具**：支持初始化档案、评估岗位、生成简历和求职信。
+- `POST /evaluate`：单条回答评测；
+- `POST /batch-evaluate`：批量评测与汇总报告；
+- `GET /health`：服务健康检查；
+- 0-10 分透明评分，输出 `pass / partial / fail`；
+- 记录扣分证据、错误类型和修改建议；
+- pytest 回归测试、Docker 与 GitHub Actions CI。
 
-## 快速运行
+### 项目特点
+
+EvalPilot 不只返回一个分数，而是尽量回答：
+
+- 为什么扣分；
+- 命中了什么错误；
+- 缺少哪些关键点；
+- 下一步应该怎样修改。
+
+这类“可解释、可复核”的设计更接近真实的大模型评测和数据质检工作。
+
+### 快速运行
+
+```bash
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+启动后可访问：
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+---
+
+## JobPilot：岗位匹配与申请材料生成工具
+
+JobPilot 是一个可在本机直接运行的求职辅助工具。
+
+### 核心流程
+
+```text
+候选人信息 + 岗位 JD
+→ 识别中英文技能关键词
+→ 计算技能覆盖率
+→ 输出匹配技能、缺失技能和学习建议
+→ 生成 Markdown 简历与求职信
+```
+
+### Windows 一键运行
+
+进入 `jobpilot` 文件夹，双击：
+
+```text
+start_windows.bat
+```
+
+也可以在终端运行：
 
 ```bash
 cd jobpilot
-pip install -r requirements.txt
-python cli.py init-profile --output my_profile.json
-python cli.py evaluate-job --profile my_profile.json --job sample_data/sample_job.md --output report.json
-python cli.py generate-cv --profile my_profile.json --job sample_data/sample_job.md --cv-template templates/cv_template.md --output output/cv.md
-python cli.py generate-cover-letter --profile my_profile.json --job sample_data/sample_job.md --letter-template templates/cover_letter_template.md --output output/letter.md
+py run.py
 ```
 
-## 简历写法
+启动后浏览器会打开类似地址：
 
 ```text
-JobPilot：AI 求职助手 / 简历匹配与求职信生成系统｜个人项目
-技术栈：Python、Jinja2、JSON、CLI、Prompt Engineering
-
-- 参考 GitHub 高星 AI 求职项目思路，设计岗位 JD 解析、候选人画像、技能匹配度评估和文档生成流程。
-- 使用 Python dataclass 构建 Profile、Job 等核心数据结构，将非结构化岗位文本转化为可分析的结构化数据。
-- 实现技能匹配度评估模块，输出 matched_skills、missing_skills 和学习建议，用于辅助简历优化和岗位选择。
-- 基于 Jinja2 模板生成定制版 Markdown 简历和求职信，模拟 AI 求职助手从岗位分析到申请材料生成的完整流程。
-- 提供命令行工具，支持初始化个人档案、评估岗位匹配度、生成简历和求职信，具备较好的项目可运行性和展示性。
+http://127.0.0.1:8000
 ```
 
-## 面试介绍
+更多说明见：[JobPilot README](./jobpilot/README.md)
 
-这个项目是一个 AI 求职助手原型，参考了 GitHub 上高星的 AI job search 项目思路。  
-我把求职流程拆成了候选人画像、岗位解析、匹配度评估、技能差距分析和材料生成几个模块。  
-项目用 Python 实现了核心流程，并通过 Jinja2 模板自动生成定制简历和求职信。  
-它主要展示的是我对 AI 应用层产品、岗位文本分析、Prompt/模板生成和工程实现的理解。
+面试讲解与学习路径见：[JobPilot 面试指南](./jobpilot/docs/interview_guide.md)
+
+---
+
+## 仓库结构
+
+```text
+.
+├── app/                       # EvalPilot FastAPI 服务与评测逻辑
+├── frontend/                  # EvalPilot 前端原型
+├── tests/                     # EvalPilot 测试
+├── jobpilot/                  # JobPilot 完整项目
+├── examples/                  # Rubric 示例
+├── prompts/                   # Prompt 模板
+├── docs/                      # 项目说明
+├── Dockerfile
+├── docker-compose.yml
+└── .github/workflows/ci.yml   # 自动化测试
+```
+
+---
+
+## 面试展示顺序
+
+### 展示 EvalPilot
+
+```text
+打开 FastAPI 文档
+→ 输入模型回答与评分规则
+→ 调用 /evaluate
+→ 展示分数、错误类型和扣分证据
+→ 说明如何保证评分可解释、可复核
+```
+
+### 展示 JobPilot
+
+```text
+打开本地网页
+→ 填写候选人技能
+→ 粘贴岗位 JD
+→ 展示匹配分与技能差距
+→ 下载简历和求职信
+```
+
+---
+
+## 项目边界
+
+- EvalPilot 当前是透明的规则型评测原型，不代表完整的商业 LLM-as-a-Judge 系统。
+- JobPilot 当前根据已识别技术关键词计算覆盖率，不代表真实录用概率。
+- 两个项目都强调可运行性、可解释性、测试和工程流程，不虚构模型训练或线上部署能力。
+
+## 求职方向
+
+- 大模型评测 / LLM Evaluation
+- Prompt 工程与评测数据构建
+- AI 数据质量与内容质检
+- Python AI 应用开发
