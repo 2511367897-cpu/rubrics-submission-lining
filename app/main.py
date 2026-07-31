@@ -1,19 +1,42 @@
 from __future__ import annotations
 
-from fastapi import FastAPI
+import os
+from pathlib import Path
 
-from app.schemas import BatchEvaluationRequest, BatchEvaluationResponse, EvaluationCase, EvaluationResult
+from fastapi import FastAPI
+from fastapi import HTTPException
+from fastapi.responses import FileResponse
+
+from app.schemas import (
+    AIEvaluationResponse,
+    BatchEvaluationRequest,
+    BatchEvaluationResponse,
+    EvaluationCase,
+    EvaluationResult,
+)
+from app.services.deepseek_client import (
+    DEFAULT_MODEL,
+    DeepSeekAPIError,
+    DeepSeekClient,
+)
 from app.services.report_service import ReportService
 from app.services.rubric_engine import RubricEngine
 
+ROOT_DIR = Path(__file__).resolve().parent.parent
+
 app = FastAPI(
-    title="EvalPilot LLM Evaluation Platform",
-    description="A lightweight platform for rubric-based LLM answer evaluation.",
-    version="0.1.0",
+    title="EvalPilot：规则引擎 + DeepSeek 双层评测平台",
+    description="先用透明规则评分，再用 DeepSeek 进行独立复核。",
+    version="0.2.0",
 )
 
 engine = RubricEngine()
 report_service = ReportService()
+
+
+@app.get("/", include_in_schema=False)
+def dashboard() -> FileResponse:
+    return FileResponse(ROOT_DIR / "frontend" / "index.html")
 
 
 @app.get("/health")
@@ -21,9 +44,35 @@ def health() -> dict:
     return {"status": "ok", "service": "EvalPilot"}
 
 
+@app.get("/ai-status")
+def ai_status() -> dict:
+    return {
+        "configured": bool(os.environ.get("DEEPSEEK_API_KEY", "").strip()),
+        "provider": "DeepSeek",
+        "model": os.environ.get("DEEPSEEK_MODEL", DEFAULT_MODEL),
+    }
+
+
 @app.post("/evaluate", response_model=EvaluationResult)
 def evaluate(case: EvaluationCase) -> EvaluationResult:
     return engine.evaluate(case)
+
+
+@app.post("/ai-evaluate", response_model=AIEvaluationResponse)
+def ai_evaluate(case: EvaluationCase) -> AIEvaluationResponse:
+    rule_result = engine.evaluate(case)
+    try:
+        client = DeepSeekClient.from_environment()
+        review = client.review(case, rule_result)
+    except DeepSeekAPIError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return AIEvaluationResponse(
+        case_id=case.case_id,
+        provider="DeepSeek",
+        model=client.model,
+        rule_result=rule_result,
+        ai_review=review,
+    )
 
 
 @app.post("/batch-evaluate", response_model=BatchEvaluationResponse)

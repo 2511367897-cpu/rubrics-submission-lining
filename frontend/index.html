@@ -2,128 +2,140 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EvalPilot Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EvalPilot｜DeepSeek 双层评测</title>
   <style>
+    :root { color-scheme: dark; --bg:#07111f; --card:#0f1c2e; --line:#26364d; --muted:#95a7bd; --blue:#60a5fa; --green:#34d399; --red:#fb7185; }
     * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
-    }
-    header {
-      padding: 28px 40px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-      background: linear-gradient(135deg, #111827, #1e293b);
-    }
-    header h1 { margin: 0 0 8px; font-size: 30px; }
-    header p { margin: 0; color: #94a3b8; }
-    main { padding: 28px 40px; }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-    .card {
-      background: rgba(15, 23, 42, .96);
-      border: 1px solid rgba(148, 163, 184, .22);
-      border-radius: 18px;
-      padding: 20px;
-      box-shadow: 0 20px 40px rgba(0,0,0,.25);
-    }
-    .metric { font-size: 34px; font-weight: 800; margin-top: 10px; }
-    .label { color: #94a3b8; font-size: 14px; }
-    .layout {
-      display: grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap: 18px;
-    }
-    table { width: 100%; border-collapse: collapse; }
-    th, td {
-      text-align: left;
-      border-bottom: 1px solid rgba(148, 163, 184, .15);
-      padding: 12px 8px;
-      font-size: 14px;
-    }
-    th { color: #94a3b8; font-weight: 600; }
-    .tag {
-      display: inline-block;
-      border-radius: 999px;
-      padding: 4px 10px;
-      background: rgba(59,130,246,.15);
-      border: 1px solid rgba(59,130,246,.35);
-      font-size: 12px;
-      color: #bfdbfe;
-    }
-    .danger { background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.35); color: #fecaca; }
-    .warn { background: rgba(245,158,11,.14); border-color: rgba(245,158,11,.35); color: #fde68a; }
-    .bar { height: 12px; border-radius: 999px; background: #1e293b; overflow: hidden; margin: 12px 0 18px; }
-    .bar span { display: block; height: 100%; background: linear-gradient(90deg, #60a5fa, #22c55e); }
-    .code {
-      background: #020617;
-      border-radius: 14px;
-      padding: 14px;
-      overflow: auto;
-      color: #cbd5e1;
-      font-size: 13px;
-      line-height: 1.55;
-    }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:radial-gradient(circle at 20% 0,#17355a 0,transparent 35%),var(--bg); color:#eef5ff; }
+    .shell { width:min(1120px,calc(100% - 32px)); margin:0 auto; padding:36px 0 64px; }
+    header { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; margin-bottom:24px; }
+    h1 { margin:0 0 8px; font-size:clamp(28px,5vw,46px); letter-spacing:-1px; }
+    h2 { margin:0 0 18px; font-size:20px; }
+    p { color:var(--muted); line-height:1.7; }
+    .badge { border:1px solid var(--line); border-radius:999px; padding:9px 14px; color:var(--muted); white-space:nowrap; background:#0b1728; }
+    .badge.ok { color:#a7f3d0; border-color:#166b56; }
+    .grid { display:grid; grid-template-columns:1.05fr .95fr; gap:20px; }
+    .card { background:rgba(15,28,46,.94); border:1px solid var(--line); border-radius:22px; padding:24px; box-shadow:0 24px 80px rgba(0,0,0,.24); }
+    label { display:block; font-size:14px; color:#c9d8e9; margin:14px 0 7px; }
+    input,textarea { width:100%; border:1px solid #32465f; border-radius:12px; background:#081321; color:#f4f8fc; padding:12px 14px; font:inherit; outline:none; }
+    textarea { min-height:110px; resize:vertical; line-height:1.6; }
+    input:focus,textarea:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(96,165,250,.12); }
+    .actions { display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
+    button { border:0; border-radius:12px; padding:12px 16px; font-weight:700; cursor:pointer; background:linear-gradient(135deg,#3b82f6,#2563eb); color:white; }
+    button.secondary { background:#1d2c40; border:1px solid #3b4d64; }
+    button:disabled { opacity:.55; cursor:wait; }
+    .empty { color:var(--muted); min-height:320px; display:grid; place-items:center; text-align:center; }
+    .score-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+    .score { background:#081321; border:1px solid var(--line); border-radius:16px; padding:17px; }
+    .score b { display:block; font-size:32px; margin-top:5px; }
+    .score small { color:var(--muted); }
+    .section { margin-top:17px; }
+    .section h3 { color:#bcd2ea; font-size:14px; margin:0 0 8px; }
+    ul { margin:0; padding-left:20px; color:#dbe8f6; line-height:1.7; }
+    .summary { border-left:3px solid var(--green); padding:10px 14px; background:#0a1b23; border-radius:0 10px 10px 0; line-height:1.65; }
+    .error { color:#fecdd3; border-color:#7f1d35; background:#2a101a; }
+    .links { margin-top:18px; font-size:14px; }
+    .links a { color:#93c5fd; margin-right:14px; }
+    @media (max-width:800px) { .grid{grid-template-columns:1fr;} header{display:block;} .badge{display:inline-block;margin-top:10px;} }
   </style>
 </head>
 <body>
-  <header>
-    <h1>EvalPilot｜LLM Evaluation Dashboard</h1>
-    <p>Rubric 评分、Gold Answer 覆盖率、错误类型归因与人工复核数据看板</p>
-  </header>
-  <main>
-    <section class="grid">
-      <div class="card"><div class="label">Total Cases</div><div class="metric">128</div></div>
-      <div class="card"><div class="label">Average Score</div><div class="metric">8.3</div></div>
-      <div class="card"><div class="label">Pass Rate</div><div class="metric">76%</div></div>
-      <div class="card"><div class="label">Review Queue</div><div class="metric">17</div></div>
-    </section>
-
-    <section class="layout">
-      <div class="card">
-        <h2>Recent Evaluation Cases</h2>
-        <table>
-          <thead>
-            <tr><th>Case</th><th>Score</th><th>Level</th><th>Error Type</th><th>Action</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>prime_001</td><td>10</td><td><span class="tag">pass</span></td><td>-</td><td>抽检通过</td></tr>
-            <tr><td>prime_002</td><td>3</td><td><span class="tag danger">fail</span></td><td>logic_error</td><td>人工复核</td></tr>
-            <tr><td>array_014</td><td>6</td><td><span class="tag warn">partial</span></td><td>missing_edge_case</td><td>补充边界</td></tr>
-            <tr><td>sql_021</td><td>7</td><td><span class="tag warn">partial</span></td><td>format_error</td><td>检查输出</td></tr>
-          </tbody>
-        </table>
+  <div class="shell">
+    <header>
+      <div>
+        <h1>EvalPilot</h1>
+        <p>透明规则先评分，DeepSeek 再独立复核。每个结论都有证据和修改建议。</p>
       </div>
+      <div id="status" class="badge">正在检查 DeepSeek…</div>
+    </header>
 
-      <div class="card">
-        <h2>Error Distribution</h2>
-        <div class="label">logic_error</div><div class="bar"><span style="width: 42%"></span></div>
-        <div class="label">missing_edge_case</div><div class="bar"><span style="width: 31%"></span></div>
-        <div class="label">format_error</div><div class="bar"><span style="width: 18%"></span></div>
-        <div class="label">incomplete_answer</div><div class="bar"><span style="width: 25%"></span></div>
-      </div>
-    </section>
+    <main class="grid">
+      <section class="card">
+        <h2>输入评测任务</h2>
+        <label for="task">题目或任务</label>
+        <textarea id="task">判断一个整数是否为质数，并说明边界条件和时间复杂度。</textarea>
+        <label for="answer">待评测的模型回答</label>
+        <textarea id="answer">奇数就是质数，1 是质数。</textarea>
+        <label for="required">必须覆盖的关键点（逗号分隔）</label>
+        <input id="required" value="大于 1, sqrt, false, true" />
+        <label for="fails">严重错误模式（逗号分隔）</label>
+        <input id="fails" value="1 是质数, 奇数就是质数" />
+        <div class="actions">
+          <button id="aiBtn" onclick="evaluateAnswer(true)">DeepSeek + 规则双评测</button>
+          <button id="ruleBtn" class="secondary" onclick="evaluateAnswer(false)">只运行规则评测</button>
+        </div>
+        <div class="links">
+          <a href="/docs" target="_blank">接口文档</a>
+          <a href="/demo-report" target="_blank">规则演示报告</a>
+        </div>
+      </section>
 
-    <section class="card" style="margin-top: 18px;">
-      <h2>Structured Evaluation Output</h2>
-      <pre class="code">{
-  "case_id": "prime_002",
-  "score": 3,
-  "level": "fail",
-  "error_types": ["logic_error", "incomplete_answer"],
-  "evidence": [
-    "命中错误模式：1 是质数、奇数就是质数",
-    "缺失关键点：sqrt、false、true"
-  ],
-  "suggestion": "优先修正核心逻辑错误，再补充边界条件和输出格式。"
-}</pre>
-    </section>
-  </main>
+      <section class="card" id="result">
+        <div class="empty">填写内容后点击“双评测”，这里会显示规则分数、AI复核、错误证据和修改建议。</div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const splitList = value => value.split(/[,，\n]/).map(x => x.trim()).filter(Boolean);
+    const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+    const list = items => `<ul>${(items || []).map(x => `<li>${escapeHtml(x)}</li>`).join("") || "<li>无</li>"}</ul>`;
+
+    async function checkStatus() {
+      const status = document.getElementById("status");
+      try {
+        const data = await fetch("/ai-status").then(r => r.json());
+        status.textContent = data.configured ? `DeepSeek 已连接 · ${data.model}` : "DeepSeek 密钥未配置";
+        status.className = data.configured ? "badge ok" : "badge";
+      } catch {
+        status.textContent = "后端未连接";
+      }
+    }
+
+    async function evaluateAnswer(useAI) {
+      const aiBtn = document.getElementById("aiBtn");
+      const ruleBtn = document.getElementById("ruleBtn");
+      const result = document.getElementById("result");
+      aiBtn.disabled = ruleBtn.disabled = true;
+      result.innerHTML = `<div class="empty">${useAI ? "DeepSeek 正在复核，请稍候…" : "规则引擎正在评分…"}</div>`;
+      const payload = {
+        case_id: `web_${Date.now()}`,
+        task: document.getElementById("task").value.trim(),
+        model_output: document.getElementById("answer").value.trim(),
+        required_keywords: splitList(document.getElementById("required").value),
+        fail_patterns: splitList(document.getElementById("fails").value)
+      };
+      try {
+        const response = await fetch(useAI ? "/ai-evaluate" : "/evaluate", {
+          method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "评测失败");
+        renderResult(useAI ? data.rule_result : data, useAI ? data.ai_review : null, data.model);
+      } catch (error) {
+        result.innerHTML = `<div class="empty error">${escapeHtml(error.message)}</div>`;
+      } finally {
+        aiBtn.disabled = ruleBtn.disabled = false;
+      }
+    }
+
+    function renderResult(rule, ai, model) {
+      const result = document.getElementById("result");
+      result.innerHTML = `
+        <h2>评测结果</h2>
+        <div class="score-row">
+          <div class="score"><small>规则引擎</small><b>${rule.score}/10</b><span>${escapeHtml(rule.level)}</span></div>
+          <div class="score"><small>DeepSeek${model ? " · " + escapeHtml(model) : ""}</small><b>${ai ? ai.score + "/10" : "—"}</b><span>${ai ? escapeHtml(ai.level) : "未运行"}</span></div>
+        </div>
+        ${ai ? `<div class="summary">${escapeHtml(ai.review_summary)}</div>` : ""}
+        <div class="section"><h3>规则扣分证据</h3>${list(rule.evidence)}</div>
+        ${ai ? `<div class="section"><h3>AI复核证据</h3>${list(ai.evidence)}</div>
+        <div class="section"><h3>AI识别的错误类型</h3>${list(ai.error_types)}</div>
+        <div class="section"><h3>修改建议</h3><p>${escapeHtml(ai.suggestion)}</p></div>` : ""}
+      `;
+    }
+    checkStatus();
+  </script>
 </body>
 </html>

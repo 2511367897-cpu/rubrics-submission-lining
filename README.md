@@ -1,161 +1,138 @@
-# 李宁｜AI 评测与应用项目集
+# EvalPilot｜规则引擎 + DeepSeek 双层回答评测平台
 
-[![CI](https://github.com/2511367897-cpu/rubrics-submission-lining/actions/workflows/ci.yml/badge.svg)](https://github.com/2511367897-cpu/rubrics-submission-lining/actions/workflows/ci.yml)
+[![CI](https://github.com/2511367897-cpu/evalpilot-deepseek-evaluation/actions/workflows/ci.yml/badge.svg)](https://github.com/2511367897-cpu/evalpilot-deepseek-evaluation/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
-![Focus](https://img.shields.io/badge/Focus-LLM%20Evaluation%20%7C%20AI%20Application-1f6feb)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688)
+![DeepSeek](https://img.shields.io/badge/DeepSeek-API-4c6ef5)
 
-> 面向 **大模型评测 / Prompt 工程 / AI 数据质量 / Python AI 应用开发实习** 的个人项目集。
+> 面向大模型评测、AI 数据质量和 Python AI 应用开发岗位的个人学习项目。
 
-这个仓库包含两个可以实际运行、可以在面试中演示的项目：
+EvalPilot 先使用透明规则检查关键点、错误模式、回答结构和边界条件，再调用
+DeepSeek 进行独立语义复核，最终同时展示两套分数、证据和修改建议。
 
-| 项目 | 解决的问题 | 核心技术 | 入口 |
-|---|---|---|---|
-| **EvalPilot** | 用透明、可复核的 Rubric 规则评测模型回答 | Python、FastAPI、规则引擎、pytest、Docker | [查看 EvalPilot](#evalpilotllm-rubric-评测平台) |
-| **JobPilot** | 解析岗位 JD、计算技能匹配度并生成申请材料 | Python、HTTP Server、JSON、CLI、正则匹配、GitHub Actions | [进入 JobPilot](./jobpilot) |
+![EvalPilot 双层评测页面](docs/images/evalpilot-demo.png)
 
----
+## 解决什么问题
 
-## EvalPilot：LLM Rubric 评测平台
-
-EvalPilot 是一个轻量级、可解释的模型回答评测原型。
-
-### 核心流程
+只让大模型给另一个大模型打分，可能出现结果波动和理由不透明。EvalPilot 将流程拆成：
 
 ```text
-评测任务 + 模型回答
-→ 检查必需关键点
-→ 检查错误模式
-→ 检查回答结构与边界条件
-→ 输出分数、等级、错误类型、证据和修改建议
+题目 + 待评回答 + 必需关键点 + 错误模式
+→ 透明规则评分
+→ DeepSeek 独立复核
+→ 对比两套评分与证据
+→ 人工确认最终结论
 ```
 
-### 已实现功能
+项目重点不是训练模型，而是把评测标准、结构化输出、API 调用、错误处理和人工复核连接成一个可运行原型。
 
-- `POST /evaluate`：单条回答评测；
-- `POST /batch-evaluate`：批量评测与汇总报告；
+## 已实现功能
+
+- `POST /evaluate`：本地单条规则评测；
+- `POST /ai-evaluate`：规则评分 + DeepSeek 独立复核；
+- `POST /batch-evaluate`：批量评分、通过率和低分样本汇总；
+- `GET /ai-status`：检查 DeepSeek 是否配置；
 - `GET /health`：服务健康检查；
-- 0-10 分透明评分，输出 `pass / partial / fail`；
-- 记录扣分证据、错误类型和修改建议；
-- pytest 回归测试、Docker 与 GitHub Actions CI。
+- 本地交互网页与 FastAPI `/docs` 接口文档；
+- 0—10 分、`pass / partial / fail`、错误类型、证据和建议；
+- API 超时、网络异常、密钥缺失和非法 JSON 错误处理；
+- pytest 回归测试和 GitHub Actions CI。
 
-### 项目特点
+## 快速运行
 
-EvalPilot 不只返回一个分数，而是尽量回答：
-
-- 为什么扣分；
-- 命中了什么错误；
-- 缺少哪些关键点；
-- 下一步应该怎样修改。
-
-这类“可解释、可复核”的设计更接近真实的大模型评测和数据质检工作。
-
-### 快速运行
+### 1. 下载并安装
 
 ```bash
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+git clone https://github.com/2511367897-cpu/evalpilot-deepseek-evaluation.git
+cd evalpilot-deepseek-evaluation
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
 ```
 
-启动后可访问：
-
-```text
-http://127.0.0.1:8000/docs
-```
-
----
-
-## JobPilot：岗位匹配与申请材料生成工具
-
-JobPilot 是一个可在本机直接运行的求职辅助工具。
-
-### 核心流程
-
-```text
-候选人信息 + 岗位 JD
-→ 识别中英文技能关键词
-→ 计算技能覆盖率
-→ 输出匹配技能、缺失技能和学习建议
-→ 生成 Markdown 简历与求职信
-```
-
-### Windows 一键运行
-
-进入 `jobpilot` 文件夹，双击：
-
-```text
-start_windows.bat
-```
-
-也可以在终端运行：
+### 2. 不配置 API Key，先体验规则模式
 
 ```bash
-cd jobpilot
-py run.py
+python run.py
 ```
 
-启动后浏览器会打开类似地址：
+浏览器会自动打开本地页面。点击“只运行规则评测”即可，不会发送任何数据到外部 API。
+
+### 3. 可选：启用 DeepSeek 双评测
+
+```bash
+export DEEPSEEK_API_KEY="你的 DeepSeek API Key"
+export DEEPSEEK_MODEL="deepseek-v4-flash"
+python run.py
+```
+
+不要把真实 Key 写入代码、README、提交记录或截图。项目从环境变量读取密钥，`.env` 已加入忽略列表。
+
+macOS 本机也可把 Key 保存到钥匙串后双击 `start_macos.command`。
+
+## API 示例
+
+```bash
+curl -X POST http://127.0.0.1:8000/ai-evaluate \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "case_id": "prime_001",
+    "task": "判断整数是否为质数",
+    "model_output": "奇数就是质数，1 是质数。",
+    "required_keywords": ["大于 1", "sqrt", "false", "true"],
+    "fail_patterns": ["1 是质数", "奇数就是质数"]
+  }'
+```
+
+返回结果同时包含：
 
 ```text
-http://127.0.0.1:8000
+rule_result  → 规则引擎分数、错误类型和扣分证据
+ai_review    → DeepSeek 分数、语义证据、复核结论和建议
 ```
 
-更多说明见：[JobPilot README](./jobpilot/README.md)
-
-面试讲解与学习路径见：[JobPilot 面试指南](./jobpilot/docs/interview_guide.md)
-
----
-
-## 仓库结构
+## 项目结构
 
 ```text
-.
-├── app/                       # EvalPilot FastAPI 服务与评测逻辑
-├── frontend/                  # EvalPilot 前端原型
-├── tests/                     # EvalPilot 测试
-├── jobpilot/                  # JobPilot 完整项目
-├── examples/                  # Rubric 示例
-├── prompts/                   # Prompt 模板
-├── docs/                      # 项目说明
-├── Dockerfile
-├── docker-compose.yml
-└── .github/workflows/ci.yml   # 自动化测试
+app/
+├── main.py                         # FastAPI 路由与页面入口
+├── schemas.py                      # 请求/响应结构校验
+└── services/
+    ├── rubric_engine.py            # 透明规则评分
+    ├── report_service.py           # 批量汇总报告
+    └── deepseek_client.py          # DeepSeek API、JSON解析与错误处理
+frontend/index.html                 # 本地交互页面
+tests/                              # pytest 回归测试
+examples/                           # Rubric 与评测样例
+.github/workflows/ci.yml            # 自动化测试
 ```
 
----
+## 测试
 
-## 面试展示顺序
-
-### 展示 EvalPilot
-
-```text
-打开 FastAPI 文档
-→ 输入模型回答与评分规则
-→ 调用 /evaluate
-→ 展示分数、错误类型和扣分证据
-→ 说明如何保证评分可解释、可复核
+```bash
+python -m pytest -q tests
 ```
 
-### 展示 JobPilot
+当前测试覆盖规则评分、明显逻辑错误、DeepSeek JSON 清理和结构化结果校验。测试不调用真实 API，因此不会消耗额度。
 
-```text
-打开本地网页
-→ 填写候选人技能
-→ 粘贴岗位 JD
-→ 展示匹配分与技能差距
-→ 下载简历和求职信
-```
+## 设计选择
 
----
+- **为什么保留规则引擎？** 稳定、透明、可测试，可作为 AI 复核的基线。
+- **为什么增加 DeepSeek？** 规则难以理解复杂语义，模型可以补充语义证据与修改建议。
+- **为什么同时展示两套结果？** 避免把模型判断直接当成最终答案，保留人工复核空间。
+- **如何保护密钥？** 环境变量或 macOS 钥匙串，不进入源码和 Git。
 
 ## 项目边界
 
-- EvalPilot 当前是透明的规则型评测原型，不代表完整的商业 LLM-as-a-Judge 系统。
-- JobPilot 当前根据已识别技术关键词计算覆盖率，不代表真实录用概率。
-- 两个项目都强调可运行性、可解释性、测试和工程流程，不虚构模型训练或线上部署能力。
+- 这是学习型原型，不是完整商业 LLM-as-a-Judge 系统；
+- 规则库和测试样本规模仍较小；
+- DeepSeek 结果可能波动，关键任务必须人工复核；
+- 当前没有用户系统、数据库和公网部署。
 
-## 求职方向
+## 面试演示
 
-- 大模型评测 / LLM Evaluation
-- Prompt 工程与评测数据构建
-- AI 数据质量与内容质检
-- Python AI 应用开发
+建议使用“质数判断”错误回答：规则引擎与 DeepSeek 都会指出“1 不是质数”“奇数不一定是质数”和边界条件缺失。详细讲解见 [面试指南](docs/project_pitch.md)。
+
+## 附带学习项目
+
+仓库保留了早期 `jobpilot/` 求职助手学习项目；本仓库的核心展示项目和简历链接均指向 EvalPilot。
