@@ -2,7 +2,7 @@
 
 ## 一句话介绍
 
-EvalPilot 是一个面向编程题质检和 LLM 回答评测的自动化评分平台原型，支持 Rubric 配置、Gold Answer 对照、错误类型归因、批量评测和统计报告输出。
+EvalPilot 是一个面向编程题质检和 LLM 回答评测的双层评分平台原型：先用透明规则给出稳定、可解释的基础分，再调用 DeepSeek 进行独立语义复核。
 
 ## 为什么做这个项目
 
@@ -13,9 +13,10 @@ EvalPilot 是一个面向编程题质检和 LLM 回答评测的自动化评分�
 
 1. 输入题目、模型回答、Gold Answer 关键点和错误模式。
 2. Rubric Engine 根据关键点覆盖情况、错误模式、格式结构和边界意识进行评分。
-3. 输出 score、level、error_types、evidence 和 suggestion。
-4. Report Service 汇总平均分、通过率、错误类型分布和低分样本。
-5. Dashboard 展示整体评测结果，辅助人工复核。
+3. DeepSeek Client 将题目、回答、评分规则和规则结果发送给模型独立复核。
+4. 使用 JSON Mode 和 Pydantic 检查 score、level、error_types、evidence、suggestion 等字段。
+5. 页面同时展示规则分和 AI 分，保留人工确认空间。
+6. Report Service 汇总平均分、通过率、错误类型分布和低分样本。
 
 ## 我负责的部分
 
@@ -23,7 +24,8 @@ EvalPilot 是一个面向编程题质检和 LLM 回答评测的自动化评分�
 - 设计错误类型字典：logic_error、missing_edge_case、format_error 等。
 - 编写 FastAPI 接口，支持单条评测和批量评测。
 - 编写评分引擎和报告服务，输出结构化评测结果。
-- 设计前端 Dashboard 原型，展示评分数据和错误分布。
+- 接入 DeepSeek API，设计结构化复核 Prompt，并处理超时、网络错误和非法 JSON。
+- 设计本地交互页面，展示规则结果与 AI 复核结果。
 - 编写测试和 CI 配置，提升项目工程化程度。
 
 ## 这个项目体现什么能力
@@ -37,6 +39,8 @@ EvalPilot 是一个面向编程题质检和 LLM 回答评测的自动化评分�
 
 ## 面试时可以怎么说
 
-这个项目重点不是训练大模型，而是解决大模型评测里的数据质量问题。  
-我把评测流程拆成了 Rubric、Gold Answer、错误类型、评分证据和人工复核几个部分，并用 FastAPI 和前端 Dashboard 做了一个平台原型。  
-它能够展示我对 LLM 应用层、Prompt 工程和评测数据构建的理解，也能体现一定的工程实现能力。
+这个项目重点不是训练大模型，而是解决大模型评测里的稳定性和可解释性问题。
+
+我把评测流程拆成 Rubric 规则评分、DeepSeek 独立复核、结构化证据和人工确认几个部分，并用 FastAPI 和本地网页做成可运行原型。
+
+规则层提供稳定基线，模型层补充复杂语义判断，两套结果都保留，避免把 AI 输出直接当成最终结论。

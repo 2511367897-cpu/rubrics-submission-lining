@@ -27,3 +27,20 @@ class BatchEvaluationRequest(BaseModel):
 class BatchEvaluationResponse(BaseModel):
     results: list[EvaluationResult]
     report: dict
+
+
+class AIReview(BaseModel):
+    score: int = Field(..., ge=0, le=10)
+    level: str
+    error_types: list[str] = Field(default_factory=list)
+    evidence: list[str] = Field(default_factory=list)
+    suggestion: str
+    review_summary: str
+
+
+class AIEvaluationResponse(BaseModel):
+    case_id: str
+    provider: str
+    model: str
+    rule_result: EvaluationResult
+    ai_review: AIReview
